@@ -1,0 +1,55 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. In the code blocks, anything preceded by a "#" is a comment where I'm explaining the code.
+
+We'll start by importing some libraries I'll use to analyze the data. Tidyverse is a collection of packages that's really helpful for processing and visualizing data.
+
+```{r}
+library(tidyverse)
+```
+
+Next, we need to import our data from a csv file into a dataframe
+
+```{r}
+df <- read_csv("~/OneDrive - University of Toronto/PSY270/Experiment1/Analysis/Experiment1Data.csv") # this is where the file is stored on my computer; if you downloaded everything to your computer you'd have to update the path
+```
+
+I'm going to clean up this data a bit. I want to exclude any participants whose accuracy was too low (say, 60%) because it means they probably weren't doing the task. We'll only consider correct trials, to control for accidental button presses. I also want to turn the "rt" column of the dataframe into a numeric data type, so I can do math with it.
+
+```{r}
+df_clean <- df %>%
+  group_by(participant_id) %>%
+  mutate(accuracy = mean(correct)) %>% # calculate average accuracy per participant
+  filter(accuracy > 0.6 & correct == TRUE) # remove any participants with accuracy less than 60% and any incorrect trials
+
+df_clean$rt <- as.numeric(df_clean$rt) # make rt numeric
+```
+
+There are tons of things we could do with this data now (e.g., statistical comparison between conditions), but for the purpose of this report, I'm just going to create a visual that shows individual data points and the group mean. Less relevant to this course, but as a pedantic point: generally if I'm working with reaction time data, I'd calculate the median rather than the mean, because RT is skewed. But that's beyond the scope of this course, and for our purposes average is ok enough. 
+
+```{r}
+# we start by computing the average reaction time for the four conditions, for each participant
+summary_df <- df_clean %>%
+  filter(!(is.na(rt))) %>% # there shouldn't be any of these, but just in case
+  group_by(participant_id, stim_type) %>%
+  summarise(avg_rt = mean(rt)) %>%
+  ungroup()
+
+# now we can create our visual! I won't get into the particulars of ggplot, but I'll provide some minor detail about the important lines
+classData <- ggplot(data = summary_df, aes(x = stim_type, y = avg_rt, color = stim_type, fill = stim_type)) + 
+  geom_point(alpha = 0.25, size = 4) + # plot a point per participant
+  stat_summary(fun = "mean", geom = "bar", linewidth = 2, fill = NA) + # plot a bar graph showing group averages
+  scale_color_viridis_d(begin = 0.3, end = .8) + # make the colours pretty
+  scale_fill_viridis_d(begin = 0.3, end = .8) + 
+  theme_classic() + # clean up the plot (removing grid lines etc.)
+  theme(text = element_text(size = 20),
+        legend.position = "none") + 
+  labs(title = "Flanker Task Reaction Times", x = "trial type", y = "average reaction time (ms)") + # add labels
+  scale_y_continuous(breaks = seq(0, 1300, by=200), limits=c(0,1300)) # more control over the y axis
+
+plot(classData)
+```
+
