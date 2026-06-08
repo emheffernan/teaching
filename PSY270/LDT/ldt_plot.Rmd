@@ -1,0 +1,29 @@
+---
+title: "R Notebook: LDT analysis"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+df <- read_csv("~/Documents/Github/teaching/PSY270/LDT/ldt_data.csv")
+df_summary <- df %>%
+  group_by(participant_num, freqGroup) %>%
+  summarize(mean_rt = mean(reaction_time))
+
+classData <- ggplot(data = df_summary, aes(x = freqGroup, y = mean_rt, color = freqGroup, fill = freqGroup)) + 
+  geom_point(alpha = 0.25, size = 4) + # plot a point per participant
+  stat_summary(fun = "mean", geom = "point", size = 8, fill = NA) + # plot a big point graph showing group averages
+  scale_color_viridis_d(begin = 0.3, end = .8, option = "magma") + # make the colours pretty
+  scale_fill_viridis_d(begin = 0.3, end = .8, option = "magma") + 
+  theme_classic() + # clean up the plot (removing grid lines etc.)
+  theme(text = element_text(size = 20),
+        legend.position = "none") + 
+  labs(title = "Lexical Decision Task Reaction Times", x = "trial type", y = "average reaction time (ms)") #+ # add labels
+
+plot(classData)
+```
+
+
